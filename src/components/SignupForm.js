@@ -1,6 +1,70 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import SuccessModal from './SuccessModal';
+import ErrorModal from './ErrorModal';
+import { app } from '@/firebase/firebase';
 
 export default function SignupForm() {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const signUp = async () => {
+    const { username, email, password, confirmPassword } = formData;
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    const auth = getAuth(app);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      setSuccessMessage("Sign up successful!");
+      setSuccessModalOpen(true);
+      setFormData({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      });
+    } catch (error) {
+      console.error('Error signing up:', error.message);
+      setErrorMessage(error.message);
+      setErrorModalOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  const handleCloseSuccessModal = () => {
+    setSuccessModalOpen(false);
+    setSuccessMessage('');
+  };
+
+  const handleCloseErrorModal = () => {
+    setErrorModalOpen(false);
+    setErrorMessage('');
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
       <div className="relative py-3 sm:max-w-xl sm:mx-auto">
@@ -20,6 +84,8 @@ export default function SignupForm() {
                     type="text"
                     className="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-rose-600"
                     placeholder="Username"
+                    value={formData.username}
+                    onChange={handleChange}
                   />
                   <label
                     htmlFor="username"
@@ -36,6 +102,8 @@ export default function SignupForm() {
                     type="email"
                     className="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-rose-600"
                     placeholder="Email address"
+                    value={formData.email}
+                    onChange={handleChange}
                   />
                   <label
                     htmlFor="email"
@@ -52,6 +120,8 @@ export default function SignupForm() {
                     type="password"
                     className="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-rose-600"
                     placeholder="Password"
+                    value={formData.password}
+                    onChange={handleChange}
                   />
                   <label
                     htmlFor="password"
@@ -64,10 +134,12 @@ export default function SignupForm() {
                   <input
                     autoComplete="off"
                     id="confirm_password"
-                    name="confirm_password"
+                    name="confirmPassword"
                     type="password"
                     className="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-rose-600"
                     placeholder="Confirm Password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
                   />
                   <label
                     htmlFor="confirm_password"
@@ -76,14 +148,23 @@ export default function SignupForm() {
                     Confirm Password
                   </label>
                 </div>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
                 <div className="relative">
-                  <button className="bg-cyan-500 text-white rounded-md px-2 py-1">Sign Up</button>
+                  <button
+                    className="bg-cyan-500 text-white rounded-md px-2 py-1"
+                    onClick={signUp}
+                    disabled={loading}
+                  >
+                    Sign Up
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      <SuccessModal isOpen={successModalOpen} message={successMessage} onClose={handleCloseSuccessModal} />
+      <ErrorModal isOpen={errorModalOpen} message={errorMessage} onClose={handleCloseErrorModal} />
     </div>
   );
 }
